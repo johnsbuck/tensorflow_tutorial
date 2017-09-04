@@ -1,6 +1,6 @@
 #!usr/bin/env python2
 
-""" Feedforward Neural Network
+"""Feedforward Neural Network
 This is an example of a feedforward neural network on TensorFlow using MNIST dataset.
 """
 
@@ -14,11 +14,11 @@ def weight_variables(shape, name="W"):
     """ Used to generate variables used for weights in the FNN.
 
     Args:
-        shape: A list of integers to used to generate a normal tensor.
-        name: Name used in tf.Variable and tf.summary for TensorBoard
+        shape: List(Integer). Used to generate a normal tensor.
+        name: String. Name used in tf.Variable and tf.summary for TensorBoard
 
     Returns:
-        tf.Variable
+        Variable
     """
     initial = tf.random_normal(shape, stddev=tf.sqrt(2. / shape[0]))
     return tf.Variable(initial, name=name)
@@ -28,12 +28,12 @@ def bias_variables(shape, constant=0.01, name="B"):
     """ Used to generate variables used for biases in the FNN.
 
     Args:
-        shape: A list of integers to used to generate a constant tensor.
+        shape: List(Integer). Used to generate a constant tensor.
         constant: A float or integer used to define all values in the returned variable.
         name: Name used in tf.Variable and tf.summary for TensorBoard
 
     Returns:
-        tf.Variable
+        Variable
     """
     initial = tf.constant(constant, shape=shape)
     return tf.Variable(initial, name=name)
@@ -47,7 +47,7 @@ def fc_layer(input, in_size, out_size, wname="W", bname="B"):
         out_size: Integer. Used to define size of current output
 
     Returns:
-        tf.Tensor
+        Tensor
     """
     W = weight_variables([in_size, out_size], name=wname)
     B = bias_variables([out_size], name=bname)
@@ -59,7 +59,7 @@ def fnn():
     """Defines a feedforward neural network and placeholders.
 
     Returns:
-        tf.Tensor
+        Tensor
     """
     x = tf.placeholder(tf.float32, [None, 784])  # None used for batch size in training.
     y = tf.placeholder(tf.float32, [None, 10])
