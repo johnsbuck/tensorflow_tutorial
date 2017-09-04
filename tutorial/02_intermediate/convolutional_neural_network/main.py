@@ -168,7 +168,7 @@ with tf.name_scope('accuracy'):
 sess = tf.Session()
 
 print('==> Defining Tensorboard Writer')
-graph_location = tempfile.mkdtemp(prefix='/home/jsb/tmp/')
+graph_location = tempfile.mkdtemp()
 print('-> Saving graph to: %s' % graph_location)
 merged_summary = tf.summary.merge_all()
 writer = tf.summary.FileWriter(graph_location)
