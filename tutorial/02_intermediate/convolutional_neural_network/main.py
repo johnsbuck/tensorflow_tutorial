@@ -136,7 +136,7 @@ print("==> Importing MNIST")
 mnist = input_data.read_data_sets('/tmp/tensorflow/mnist/input_data', one_hot=True)
 
 # --------------------------------------------------------------
-print("==> Creating Feedforward Neural Network (FNN) Model")
+print("==> Creating Convolutional Neural Network (CNN) Model")
 
 print("-> Creating placeholders for input & output")
 print("# Inputs   : 28x28 image")
