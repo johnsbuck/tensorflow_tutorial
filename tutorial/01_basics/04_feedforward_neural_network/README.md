@@ -6,7 +6,7 @@ framework, and showing its effectiveness on MNIST, a simple
 classification problem for hand-drawn digits.
 
 ## Contents
-1. script.py
+1. main.py
     * An example FNN that is created, trained on MNIST training data,
      and validated using a separate MNIST testing set.
 2. feedforward_neural_network.ipynb
