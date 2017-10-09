@@ -118,7 +118,7 @@ writer.add_graph(sess.graph)
 # --------------------------------------------------------------
 print("==> Begin Training")
 sess.run(tf.global_variables_initializer())
-for i in xrange(20000):
+for i in xrange(200):
     batch = mnist.train.next_batch(50)
     if i % 100 == 0:    # Evaluate every 100 batches
         [train_accuracy, s] = sess.run([accuracy, merged_summary], feed_dict={
