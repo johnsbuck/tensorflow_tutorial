@@ -18,7 +18,7 @@ def third_order_polynomial(X):
               X[:, 0]**3, X[:, 0]**2 * X[:, 1], X[:, 1]**2 * X[:, 0], X[:, 1]**3]).T
 
 
-def plot_model_outcomes(X, Y, perc, lin_regressor, title='Perceptron vs. Linear Regressor', third_order=False):
+def plot_model_outcomes(X, Y, perc, lin_regressor, title="Perceptron vs. Linear Regressor", third_order=False):
     """Plots outcomes of Perceptron and Linear Regressor model on Meshgrid.
 
     Args:
@@ -26,7 +26,7 @@ def plot_model_outcomes(X, Y, perc, lin_regressor, title='Perceptron vs. Linear 
         Y (numpy.ndarray): A 1-D array consisting of labels used to color the plot based on different labels.
         perc (Perceptron): The Perceptron model used in training.
         lin_regressor (LinearRegressor): The LinearRegressor model used in training.
-        title (str): The title of the plot. (Optional: 'Perceptron vs. Linear Regressor')
+        title (str): The title of the plot. (Optional: "Perceptron vs. Linear Regressor")
         third_order (bool): If True, will use 3rd Order Polynomial inputs for prediction instead of 1st Order.
             Otherwise will use 1st Order Polynomial input for prediction.
             (Optional: False)
@@ -52,8 +52,8 @@ def plot_model_outcomes(X, Y, perc, lin_regressor, title='Perceptron vs. Linear 
     plt.xlim(x_min, x_max)
     plt.ylim(y_min, y_max)
     plt.autoscale(False)
-    plt.xlabel('x2')
-    plt.ylabel('x1')
+    plt.xlabel("x2")
+    plt.ylabel("x1")
 
     # Predict values for meshgrid
     mesh_inputs = np.c_[xx.ravel(), yy.ravel()]
@@ -66,7 +66,7 @@ def plot_model_outcomes(X, Y, perc, lin_regressor, title='Perceptron vs. Linear 
     # Create contour based on Z-label values and x,y-coordinates from mesh
     plt.contourf(xx, yy, Z, cmap=plt.cm.Spectral, alpha=.25)
     # Create line of separation from meshgrid
-    plt.contour(xx, yy, Z, colors='m')
+    plt.contour(xx, yy, Z, colors="m")
 
     if third_order:
         Z = lin_regressor.predict(third_order_polynomial(mesh_inputs))
@@ -74,12 +74,12 @@ def plot_model_outcomes(X, Y, perc, lin_regressor, title='Perceptron vs. Linear 
         Z = lin_regressor.predict(mesh_inputs)
     Z = Z.reshape(xx.shape)
     plt.contourf(xx, yy, Z, cmap=plt.cm.Spectral, alpha=.25)
-    plt.contour(xx, yy, Z, colors='g')
+    plt.contour(xx, yy, Z, colors="g")
 
-    plt.plot(X[neg, 0], X[neg, 1], 'rx', label='-1')
-    plt.plot(X[pos, 0], X[pos, 1], 'bo', label='+1')
-    plt.plot([-50, -50], [-50, -50], 'm', label='Perceptron')
-    plt.plot([-50, -50], [-50, -50], 'g', label='Linear')
+    plt.plot(X[neg, 0], X[neg, 1], "rx", label="-1")
+    plt.plot(X[pos, 0], X[pos, 1], "bo", label="+1")
+    plt.plot([-50, -50], [-50, -50], "m", label="Perceptron")
+    plt.plot([-50, -50], [-50, -50], "g", label="Linear")
 
     plt.legend(loc=1)
     plt.title(title)
@@ -112,7 +112,7 @@ def train_algorithms(X, Y, perc, lin_regressor):
     perc.reset(X.shape[1])
     for i in xrange(100000):
         if i % 20000 == 0:
-            print str(i / 1000) + '% Complete'
+            print str(i / 1000) + "% Complete"
         perc.train_step(X, Y)
         pla_errors.append(perc.accuracy(X, Y))
 
@@ -158,8 +158,8 @@ def main():
     # ================================================
     # Plotting 1st Order Polynomial Models
     # ================================================
-    print '==> PLOTTING 1ST ORDER MODELS'
-    plot_model_outcomes(X, Y, perc, lin_regressor, title='Perceptron vs. Linear Regressor (1st Order)')
+    print "==> PLOTTING 1ST ORDER MODELS"
+    plot_model_outcomes(X, Y, perc, lin_regressor, title="Perceptron vs. Linear Regressor (1st Order)")
 
     # ================================================
     # 3rd Order Polynomials
@@ -184,8 +184,8 @@ def main():
     # ================================================
     # Plotting 3rd Order Polynomial Models
     # ================================================
-    print '==> PLOTTING 3RD ORDER MODELS'
-    plot_model_outcomes(X, Y, perc, lin_regressor, title='Perceptron vs. Linear Regressor (3rd Order)', third_order=True)
+    print "==> PLOTTING 3RD ORDER MODELS"
+    plot_model_outcomes(X, Y, perc, lin_regressor, title="Perceptron vs. Linear Regressor (3rd Order)", third_order=True)
 
     # ================================================
     # Summary of 1st & 3rd Order Polynomial
@@ -210,26 +210,26 @@ def main():
 
     plt.xlabel("Iterations")
     plt.ylabel("Error (%)")
-    plt.title('Perceptron Pocket Algorithm (1st vs 3rd Order)')
+    plt.title("Perceptron Pocket Algorithm (1st vs 3rd Order)")
     plt.legend(loc=1)
 
     plt.show()
     plt.close()
 
     print "=> Creating Bar Plot"
-    plt.bar(1, pla_end_errors[0], color='#FFB000', label='Pocket Algorithm')
-    plt.bar(1, lin_end_errors[0], color='#0066FF', label='Linear Regression')
-    plt.bar(2, pla_end_errors[1], color='#FFB000')
-    plt.bar(2, lin_end_errors[1], color='#0066FF')
+    plt.bar(1, pla_end_errors[0], color="#FFB000", label="Pocket Algorithm")
+    plt.bar(1, lin_end_errors[0], color="#0066FF", label="Linear Regression")
+    plt.bar(2, pla_end_errors[1], color="#FFB000")
+    plt.bar(2, lin_end_errors[1], color="#0066FF")
 
-    plt.xticks([1, 2], ('1st', '3rd'))
-    plt.xlabel('Order Polynomial')
-    plt.ylabel('Error (%)')
-    plt.title('Linear Regression vs Perceptron Pocket Algorithm')
+    plt.xticks([1, 2], ("1st", "3rd"))
+    plt.xlabel("Order Polynomial")
+    plt.ylabel("Error (%)")
+    plt.title("Linear Regression vs Perceptron Pocket Algorithm")
 
     plt.legend(loc=1)
     plt.show()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

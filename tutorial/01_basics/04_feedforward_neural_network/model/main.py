@@ -7,7 +7,7 @@ from tensorflow.examples.tutorials.mnist import input_data
 # ------------------------------------------------
 print("==> Importing MNIST")
 
-mnist = input_data.read_data_sets('/tmp/tensorflow/mnist/input_data', one_hot=True)
+mnist = input_data.read_data_sets("/tmp/tensorflow/mnist/input_data", one_hot=True)
 
 # ------------------------------------------------
 print("==> Creating Feedforward Neural Network (FNN) Model")

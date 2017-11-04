@@ -23,7 +23,7 @@ class Perceptron(object):
 
         Returns:
             (bool) If True, there are no misclassified inputs and training is complete.
-                Otherwise, training isn't complete and a training step occurs.
+                Otherwise, training isn"t complete and a training step occurs.
         """
         dot_prod = np.dot(X, self.__t_w) + self._b
         misclassified = np.where(y != np.sign(dot_prod))[0]

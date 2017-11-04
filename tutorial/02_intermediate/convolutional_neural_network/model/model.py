@@ -1,29 +1,45 @@
-import numpy as np
 import tensorflow as tf
+import numpy as np
 import tempfile
+import functools
+import operator
 
-
-class FNN(object):
-    """Feedforward Neural Network
-    This class uses TensorFlow to create a FNN model that is used for regression, logistic regression,
+class CNN(object):
+    """Convolutional Neural Network
+    This class uses TensorFlow to create a CNN model that is used for regression, logistic regression,
     and classification problems.
+
     """
 
-    def __init__(self, input_size, output_size, hidden_sizes,
-                 act_func="relu", name="FNN", sess=None, tensor_board=True):
-        """Initializes the Feedforward Neural Network model.
+    def __init__(self, input_size, output_size, kernel_sizes, fc_hidden_sizes, strides=[1, 1, 1, 1],
+                 padding="SAME", chan=1, pool=True, dropout=True, act_func="relu", name="CNN", tensor_board=True):
+        """Initializes the Convolutional Neural Network model.
         Creates the model structure, placeholders, and other parameters.
 
         Args:
-            input_size (int): Size of input for input arrays
+            input_size (int or list<int>): Size of input for input arrays.
+                If just an integer, will assume is a square, 1D input and will reshape accordingly.
+                If is a list of integers, the model will not reshape.
             output_size (int): Size of output for model output
-            hidden_sizes (list<int>): A list of integers, each representing the size of a hidden layer.
+            kernel_sizes (list<list<int>>): A list containing lists of integers, each representing
+                a kernel of a convolutional layer.
+            fc_hidden_sizes (list<int>): A list of integers, each representing
+                the size of a fully-connected hidden layer.
+            strides (list<int>): A list of integers, representing the strides used in each convolutional layer.
+                (Optional: [1, 1, 1, 1])
+            padding (str): The padding option for the convolutional layer. The padding may be "SAME" or "VALID".
+                (Optional: "SAME")
+            chan (int): The number of channels.
+                Grayscale: 1
+                RGB: 3
+                RGBA: 4
+                (Optional: 1)
+            pool (bool): If True, the CNN will pool each convolutional layer with a max-pool of size 2. (Optional: True)
+            dropout (bool): If True, will add a dropout layer after the first fully-connected layer. (Optional: True)
             act_func (str): A given activation function name used as part of the model.
                 Current options are "relu", "elu", "sigmoid", and "tanh".
                 (Optional: "relu")
             name (str): The name of the model. (Optional: "FNN")
-            sess (tf.Session): A session to be used for training. If None is given, model will generate a new sess.
-                (Optional: None)
             tensor_board (bool): If True, will create name scope to be used for TensorBoard.
                 Otherwise, will just create model.
                 (Optional: True)
@@ -39,7 +55,7 @@ class FNN(object):
         # ================================================
         # Utilities
         # ================================================
-        self._sess = sess
+        self._sess = None
         self._name = name
 
         # ================================================
@@ -47,44 +63,91 @@ class FNN(object):
         # ================================================
         self._in_size = input_size
         self._out_size = output_size
-        self._hidden_sizes = hidden_sizes
+        self._kernel_sizes = kernel_sizes
+        self._fc_hidden_sizes = fc_hidden_sizes
+        self._strides = strides
+        self._padding = padding
+        self._chan = chan
+        self._pool = pool
+        self._dropout = dropout
         self._act_func = self._ACTIVATIONS[act_func]
         self._tensor_board = tensor_board
 
         # ================================================
         # Define Model
         # ================================================
-        self._n_layers = 1
-        current = input_size
+        n_conv_layers = 0
+        n_fc_layers = 1     # +1 for the last output layer.
 
         with tf.name_scope(self._name):
-            self._x = tf.placeholder(tf.float32, [None, input_size])
+            if type(input_size) is not list:
+                self._x = tf.placeholder(tf.float32, [None, input_size])
+            else:
+                self._x = tf.placeholder(tf.float32, [None] + input_size)
             self._y = tf.placeholder(tf.float32, [None, output_size])
 
             # --------------------------------
             # Begin model with initial inputs
             # --------------------------------
             self._model = self._x
+            if type(input_size) is not list:
+                # If 1D, will reshape based one sqrt of input_size (assumes square image or input)
+                self._model = tf.reshape(self._model, [-1, int(tf.sqrt(input_size)), int(tf.sqrt(input_size)), chan])
 
             # --------------------------------
-            # Define each hidden layer
+            # Define each convolutional layer
             # --------------------------------
-            for hidden in hidden_sizes:
-                with tf.name_scope("fc" + str(self._n_layers)):
+            for hidden in kernel_sizes:
+                with tf.name_scope("conv" + str(n_conv_layers + 1)):
+                    weights = self._weights([hidden])
+                    bias = self._bias([hidden[-1]])
+                    self._model = self._act_func(tf.nn.conv2d(self._model, weights,
+                                                              strides=strides, padding=padding) + bias)
+                    if tensor_board:
+                        tf.summary.image("Filters", weights[:, :, :, :1], max_outputs=1)
+                        tf.summary.histogram("W", weights)
+                        tf.summary.histogram("B", bias)
+                if pool:
+                    with tf.name_scope("pool" + str(n_conv_layers)):
+                        self._model = tf.nn.max_pool(self._model, ksize=[1, 2, 2, 1],
+                                                     strides=[1, 2, 2, 1], padding="SAME")
+                        if tensor_board:
+                            tf.summary.image("Max-Pooled (2) Filters", self._model[:, :, :, :1], max_outputs=1)
+                n_conv_layers += 1
+
+            # --------------------------------
+            # Flatten for fc layers
+            # --------------------------------
+            self._model = tf.reshape(self._model, [-1, functools.reduce(operator.mul, self._model.get_shape()[1:], 1)])
+
+            # --------------------------------
+            # Define each fc layer
+            # --------------------------------
+            current = self._model.get_shape()[1]
+            for hidden in fc_hidden_sizes:
+                with tf.name_scope("fc" + str(n_fc_layers)):
                     weights = self._weights([current, hidden])
                     bias = self._bias([hidden])
                     self._model = self._act_func(tf.matmul(self._model, weights) + bias)
-                    if tensor_board:
-                        tf.summary.histogram("W", weights)
-                        tf.summary.histogram("B", bias)
-                        tf.summary.histogram("Activation", self._model)
                 current = hidden
-                self._n_layers += 1
+                n_fc_layers += 1
+                if tensor_board:
+                    tf.summary.histogram("W", weights)
+                    tf.summary.histogram("B", bias)
+                    tf.summary.histogram("Activation", self._model)
+
+                if dropout:
+                    with tf.name_scope("dropout"):
+                        self._keep_prob = tf.placeholder(tf.float32)
+                        self._model = tf.nn.dropout(self._model, self._keep_prob)
+                        if tensor_board:
+                            tf.summary.histogram("dropout", self._model)
+                        dropout = False
 
             # --------------------------------
             # Define output layer
             # --------------------------------
-            with tf.name_scope("fc" + str(self._n_layers)):
+            with tf.name_scope("fc" + str(n_fc_layers)):
                 weights = self._weights([current, output_size])
                 bias = self._bias([output_size])
                 self._model = self._act_func(tf.matmul(self._model, weights) + bias)
@@ -92,16 +155,9 @@ class FNN(object):
                     tf.summary.histogram("W", weights)
                     tf.summary.histogram("B", bias)
                     tf.summary.histogram("Activation", self._model)
+            self._n_layers = n_conv_layers + n_fc_layers
 
     def __call__(self, x):
-        """Returns the predicted output from the model using the given inputs.
-
-        Args:
-            x(numpy.ndarray): Inputs that are given to model. Shape: [# of Inputs, Input size defined in object]
-
-        Returns:
-            (numpy.ndarray) Output from model. Shape: [# of Inputs, Output size defined in object]
-        """
         return self.predict(x)
 
     @staticmethod
@@ -134,7 +190,7 @@ class FNN(object):
         return tf.Variable(initial, name=name)
 
     def train(self, x, y, learning_rate=1e-3, batch_size=10,
-              n_epochs=20000, epoch_print=None, reuse=True):
+              n_iter=20000, batch_print=None, iter_mode="epochs", reuse=True):
         """Trains the model using the given input and output.
         Optimizer: AdamOptimizer
         Loss:
@@ -149,9 +205,14 @@ class FNN(object):
             y(numpy.ndarray): Output regression or labels from NumPy ndarray used for training model.
             learning_rate(float): Learning rate used by the AdamOptimizer. (Optional: 1e-3)
             batch_size(int): Size of each batch. (Optional: 10)
-            n_epochs(int): Number of iterations. (Optional: 20000)
-            epoch_print(int): Prints out training information every nth batch,
+            n_iter(int): Number of iterations. (Optional: 20000)
+            batch_print(int): Prints out training information every nth batch,
                 or never if set to None. (Optional: None)
+            iter_mode(str): There are two modes, epochs and batches.
+                epochs: Will run through all batches for <n_iter> epochs, randomizing every epochs.
+                batches: Will run through <n_iter> batches,
+                    randomizing after running through all batches in a given permutation.
+                (Optional: "epochs")
             reuse(bool): If True, will reset the session from last. Otherwise, will only set if not defined.
                 (Optional: True)
 
@@ -173,6 +234,12 @@ class FNN(object):
             raise ValueError("Input doesn\"t match model input size.")
         if y.shape[1] != self._out_size:
             raise ValueError("Output doesn\"t match model output size.")
+
+        # --------------------------------
+        # Option Errors for iter_type
+        # --------------------------------
+        if iter_mode not in ["epochs", "batches"]:
+            raise ValueError("iter_type must be either "epochs" or "batches".")
 
         # ================================================
         # Define Utilities
@@ -226,33 +293,60 @@ class FNN(object):
         # ================================================
         # Begin Training
         # ================================================
-        total_batches = int(np.ceil(x.shape[0] * 1. / batch_size))
 
-        for epoch in range(n_epochs):
+        total_batches = int(np.ceil(x.shape[0] * 1. / batch_size))
+        if iter_mode == "epochs":
+            for iter in range(n_iter):
+
+                # --------------------------------
+                # Randomize Inputs and Outputs
+                # --------------------------------
+                perm = np.arange(x.shape[0])
+                x = x[perm]
+                y = y[perm]
+
+                # --------------------------------
+                # Training Each Batch
+                # --------------------------------
+                curr_batch = 0  # Index used to obtain next batch
+                batch_iter = 0  # Current iteration of batches
+                while curr_batch < x.shape[0]:
+
+                    # Get Data Batch
+                    if (curr_batch + batch_size) < x.shape[0]:
+                        batch_x = x[curr_batch:curr_batch + batch_size]
+                        batch_y = y[curr_batch:curr_batch + batch_size]
+                        curr_batch += batch_size
+                    else:
+                        batch_x = x[curr_batch:]
+                        batch_y = y[curr_batch:]
+                        curr_batch = x.shape[0]
+
+                    # Batch Information
+                    if batch_iter % batch_print == 0:
+                        train_accuracy = self._sess.run(accuracy, feed_dict={self._x: batch_x,
+                                                                             self._y: batch_y,
+                                                                             self._keep_prob: 1.0})
+                        if self._tensor_board:
+                            s = self._sess.run(merged_summary, feed_dict={self._x: batch_x,
+                                                                          self._y: batch_y,
+                                                                          self._keep_prob: 1.0})
+                            writer.add_summary(s, batch_iter + (total_batches * iter))
+                        print("step %d, training accuracy %g" % (batch_iter, train_accuracy))
+
+                    # Training Step
+                    self._sess.run(optimizer, feed_dict={self._x: batch_x, self._y: batch_y, self._keep_prob: 0.5})
+                    batch_iter += 1
+        else:
             # --------------------------------
             # Randomize Inputs and Outputs
             # --------------------------------
-            perm = np.random.permutation(np.arange(x.shape[0]))
+            perm = np.arange(x.shape[0])
             x = x[perm]
             y = y[perm]
 
-            # --------------------------------
-            # Training Each Batch
-            # --------------------------------
-            curr_batch = 0  # Index used to obtain next batch
-            batch_iter = 0  # Current iteration of batches
-
-            # Epoch Information
-            if epoch_print and epoch % epoch_print == 0:
-                train_accuracy = self._sess.run(accuracy, feed_dict={self._x: x,
-                                                                     self._y: y})
-                if self._tensor_board:
-                    s = self._sess.run(merged_summary, feed_dict={self._x: x,
-                                                                  self._y: y})
-                    writer.add_summary(s, batch_iter + (total_batches * epoch))
-                print("epoch %d, training accuracy %g" % (epoch, train_accuracy))
-
-            while curr_batch < x.shape[0]:
+            curr_batch = 0
+            for iter in range(n_iter):
 
                 # Get Data Batch
                 if (curr_batch + batch_size) < x.shape[0]:
@@ -262,12 +356,27 @@ class FNN(object):
                 else:
                     batch_x = x[curr_batch:]
                     batch_y = y[curr_batch:]
-                    curr_batch = x.shape[0]
+
+                    # Reset after each full cycle of batches
+                    curr_batch = 0
+                    perm = np.arange(x.shape[0])
+                    x = x[perm]
+                    y = y[perm]
+
+                # Batch Information
+                if iter % batch_print == 0:
+                    train_accuracy = self._sess.run(accuracy, feed_dict={self._x: batch_x,
+                                                                         self._y: batch_y,
+                                                                         self._keep_prob: 1.0})
+                    if self._tensor_board:
+                        s = self._sess.run(merged_summary, feed_dict={self._x: batch_x,
+                                                                      self._y: batch_y,
+                                                                      self._keep_prob: 1.0})
+                        writer.add_summary(s, iter)
+                    print("step %d, training accuracy %g" % (iter, train_accuracy))
 
                 # Training Step
-                self._sess.run(optimizer, feed_dict={self._x: batch_x,
-                                                     self._y: batch_y})
-                batch_iter += 1
+                self._sess.run(optimizer, feed_dict={self._x: batch_x, self._y: batch_y, self._keep_prob: 0.5})
 
     def predict(self, x):
         """Returns the output of the model from the given input array.
@@ -281,7 +390,7 @@ class FNN(object):
         Returns:
             (numpy.ndarray). Predicted output generated by the model.
         """
-        return self._sess.run(self._model, feed_dict={self._x: x})
+        return self._sess.run(self._model, feed_dict={self._x: x, self._keep_prob: 1.0})
 
     def accuracy(self, x, y):
         """Returns the accuracy of the model based on the given input and output arrays.
@@ -307,4 +416,4 @@ class FNN(object):
         else:
             accuracy = tf.reduce_mean(tf.abs(self._y - self._model))
 
-        return self._sess.run(accuracy, feed_dict={self._x: x, self._y: y})
+        return self._sess.run(accuracy, feed_dict={self._x: x, self._y: y, self._keep_prob: 1.0})

@@ -72,7 +72,7 @@ def fnn():
 # --------------------------------------------------------------
 print("==> Importing MNIST")
 
-mnist = input_data.read_data_sets('/tmp/tensorflow/mnist/input_data', one_hot=True)
+mnist = input_data.read_data_sets("/tmp/tensorflow/mnist/input_data", one_hot=True)
 
 # --------------------------------------------------------------
 print("==> Creating Feedforward Neural Network (FNN) Model")
@@ -91,24 +91,24 @@ print("-> Defining loss function")
 with tf.name_scope("loss"):     # Used for graphing in tensorboard
     loss = tf.nn.softmax_cross_entropy_with_logits(labels=y, logits=model)
     loss = tf.reduce_mean(loss)
-    tf.summary.scalar('loss', loss)
+    tf.summary.scalar("loss", loss)
 
 print("-> Defining optimizer")
 with tf.name_scope("optimizer"):
     optimizer = tf.train.AdamOptimizer(learning_rate=1e-3).minimize(loss)
 
 print("-> Defining accuracy")
-with tf.name_scope('accuracy'):
+with tf.name_scope("accuracy"):
     correct_prediction = tf.equal(tf.argmax(model, 1), tf.argmax(y, 1))
     correct_prediction = tf.cast(correct_prediction, tf.float32)
     accuracy = tf.reduce_mean(correct_prediction)
-    tf.summary.scalar('accuracy', accuracy)
+    tf.summary.scalar("accuracy", accuracy)
 
-print('-> Defining graphing properties')
+print("-> Defining graphing properties")
 sess = tf.Session()
 
 graph_location = tempfile.mkdtemp()
-print('Saving graph to: %s' % graph_location)
+print("Saving graph to: %s" % graph_location)
 
 merged_summary = tf.summary.merge_all()
 
@@ -124,14 +124,14 @@ for i in xrange(200):
         [train_accuracy, s] = sess.run([accuracy, merged_summary], feed_dict={
             x: batch[0], y: batch[1]})
         writer.add_summary(s, i)
-        print('step %d, training accuracy %g' % (i, train_accuracy))
+        print("step %d, training accuracy %g" % (i, train_accuracy))
 
     # Training Step
     sess.run(optimizer, feed_dict={x: batch[0], y: batch[1]})
 
 # --------------------------------------------------------------
 print("==> Begin Testing")
-print('test accuracy %g' % sess.run(accuracy, feed_dict={
+print("test accuracy %g" % sess.run(accuracy, feed_dict={
     x: mnist.test.images, y: mnist.test.labels}))
 
 # --------------------------------------------------------------

@@ -125,7 +125,7 @@ def cnn():
         tf.summary.histogram("dropout", h_fc1_drop)
 
     with tf.name_scope("fc2"):
-        h_fc2 = linear(h_fc1_drop, 1024, 10)
+        h_fc2 = tf.nn.relu(linear(h_fc1_drop, 1024, 10))
         tf.summary.histogram("activation", h_fc2)
 
     return h_fc2, x, y, keep_prob
@@ -133,7 +133,7 @@ def cnn():
 # --------------------------------------------------------------
 print("==> Importing MNIST")
 
-mnist = input_data.read_data_sets('/tmp/tensorflow/mnist/input_data', one_hot=True)
+mnist = input_data.read_data_sets("/tmp/tensorflow/mnist/input_data", one_hot=True)
 
 # --------------------------------------------------------------
 print("==> Creating Convolutional Neural Network (CNN) Model")
@@ -158,7 +158,7 @@ with tf.name_scope("optimizer"):
     optimizer = tf.train.AdamOptimizer(learning_rate=1e-3).minimize(loss)
 
 print("-> Defining accuracy")
-with tf.name_scope('accuracy'):
+with tf.name_scope("accuracy"):
     correct_prediction = tf.equal(tf.argmax(model, 1), tf.argmax(y, 1))
     correct_prediction = tf.cast(correct_prediction, tf.float32)
     accuracy = tf.reduce_mean(correct_prediction)
@@ -167,9 +167,9 @@ with tf.name_scope('accuracy'):
 # --------------------------------------------------------------
 sess = tf.Session()
 
-print('==> Defining Tensorboard Writer')
-graph_location = tempfile.mkdtemp()
-print('-> Saving graph to: %s' % graph_location)
+print("==> Defining Tensorboard Writer")
+graph_location = tempfile.mkdtemp(prefix="/home/jsb/tmp/")
+print("-> Saving graph to: %s" % graph_location)
 merged_summary = tf.summary.merge_all()
 writer = tf.summary.FileWriter(graph_location)
 writer.add_graph(sess.graph)
@@ -182,12 +182,12 @@ for i in xrange(20000):
     if i % 100 == 0:
         [train_accuracy, s] = sess.run([accuracy, merged_summary], feed_dict={x: batch[0], y: batch[1], keep_prob: 1.0})
         writer.add_summary(s, i)
-        print('step %d, training accuracy %g' % (i, train_accuracy))
+        print("step %d, training accuracy %g" % (i, train_accuracy))
     sess.run([optimizer], feed_dict={x: batch[0], y: batch[1], keep_prob: 0.5})
 
 # --------------------------------------------------------------
 print("==> Begin Testing")
-print('test accuracy %g' % sess.run([accuracy], feed_dict={
+print("test accuracy %g" % sess.run([accuracy], feed_dict={
     x: mnist.test.images, y: mnist.test.labels, keep_prob: 1.0}))
 
 # --------------------------------------------------------------
