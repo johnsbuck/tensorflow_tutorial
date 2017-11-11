@@ -17,15 +17,15 @@ class CNN(object):
         Creates the model structure, placeholders, and other parameters.
 
         Args:
-            input_size (int or list<int>): Size of input for input arrays.
+            input_size (int or list of int): Size of input for input arrays.
                 If just an integer, will assume is a square, 1D input and will reshape accordingly.
                 If is a list of integers, the model will not reshape.
             output_size (int): Size of output for model output
-            kernel_sizes (list<list<int>>): A list containing lists of integers, each representing
+            kernel_sizes (list of list of int): A list containing lists of integers, each representing
                 a kernel of a convolutional layer.
-            fc_hidden_sizes (list<int>): A list of integers, each representing
+            fc_hidden_sizes (list of int): A list of integers, each representing
                 the size of a fully-connected hidden layer.
-            strides (list<int>): A list of integers, representing the strides used in each convolutional layer.
+            strides (list of int): A list of integers, representing the strides used in each convolutional layer.
                 (Optional: [1, 1, 1, 1])
             padding (str): The padding option for the convolutional layer. The padding may be "SAME" or "VALID".
                 (Optional: "SAME")
@@ -165,7 +165,7 @@ class CNN(object):
         """Used to generate variables used for weights.
 
         Args:
-            shape (list<int>): Used to generate a normal tensor.
+            shape (list of int): Used to generate a normal tensor.
             name (str): Name used in tf.Variable and tf.summary for TensorBoard
 
         Returns:
@@ -179,7 +179,7 @@ class CNN(object):
         """Used to generate variables used for biases.
 
         Args:
-            shape (list<int>): Used to generate a constant tensor.
+            shape (list of int): Used to generate a constant tensor.
             constant (float): Used to define all values in the returned variable.
             name (string): Name used in tf.Variable and tf.summary for TensorBoard
 
@@ -190,7 +190,7 @@ class CNN(object):
         return tf.Variable(initial, name=name)
 
     def train(self, x, y, learning_rate=1e-3, batch_size=10,
-              n_iter=20000, batch_print=None, iter_mode="epochs", reuse=True):
+              n_epochs=20000, epoch_print=None, reuse=True):
         """Trains the model using the given input and output.
         Optimizer: AdamOptimizer
         Loss:
@@ -234,12 +234,6 @@ class CNN(object):
             raise ValueError("Input doesn\"t match model input size.")
         if y.shape[1] != self._out_size:
             raise ValueError("Output doesn\"t match model output size.")
-
-        # --------------------------------
-        # Option Errors for iter_type
-        # --------------------------------
-        if iter_mode not in ["epochs", "batches"]:
-            raise ValueError("iter_type must be either "epochs" or "batches".")
 
         # ================================================
         # Define Utilities
@@ -295,8 +289,15 @@ class CNN(object):
         # ================================================
 
         total_batches = int(np.ceil(x.shape[0] * 1. / batch_size))
-        if iter_mode == "epochs":
-            for iter in range(n_iter):
+        if epoch_print:
+            if epoch_print and epoch_print <= 0:
+                epoch_print = None
+            elif int(np.floor(total_batches / epoch_print)) >= 1:
+                epoch_print = int(np.floor(total_batches / epoch_print))
+            else:
+                epoch_print = 1
+
+        for epoch in range(n_epochs):
 
                 # --------------------------------
                 # Randomize Inputs and Outputs
@@ -323,7 +324,7 @@ class CNN(object):
                         curr_batch = x.shape[0]
 
                     # Batch Information
-                    if batch_iter % batch_print == 0:
+                    if epoch_print and (batch_iter % epoch_print) == 0:
                         train_accuracy = self._sess.run(accuracy, feed_dict={self._x: batch_x,
                                                                              self._y: batch_y,
                                                                              self._keep_prob: 1.0})
@@ -337,46 +338,6 @@ class CNN(object):
                     # Training Step
                     self._sess.run(optimizer, feed_dict={self._x: batch_x, self._y: batch_y, self._keep_prob: 0.5})
                     batch_iter += 1
-        else:
-            # --------------------------------
-            # Randomize Inputs and Outputs
-            # --------------------------------
-            perm = np.arange(x.shape[0])
-            x = x[perm]
-            y = y[perm]
-
-            curr_batch = 0
-            for iter in range(n_iter):
-
-                # Get Data Batch
-                if (curr_batch + batch_size) < x.shape[0]:
-                    batch_x = x[curr_batch:curr_batch + batch_size]
-                    batch_y = y[curr_batch:curr_batch + batch_size]
-                    curr_batch += batch_size
-                else:
-                    batch_x = x[curr_batch:]
-                    batch_y = y[curr_batch:]
-
-                    # Reset after each full cycle of batches
-                    curr_batch = 0
-                    perm = np.arange(x.shape[0])
-                    x = x[perm]
-                    y = y[perm]
-
-                # Batch Information
-                if iter % batch_print == 0:
-                    train_accuracy = self._sess.run(accuracy, feed_dict={self._x: batch_x,
-                                                                         self._y: batch_y,
-                                                                         self._keep_prob: 1.0})
-                    if self._tensor_board:
-                        s = self._sess.run(merged_summary, feed_dict={self._x: batch_x,
-                                                                      self._y: batch_y,
-                                                                      self._keep_prob: 1.0})
-                        writer.add_summary(s, iter)
-                    print("step %d, training accuracy %g" % (iter, train_accuracy))
-
-                # Training Step
-                self._sess.run(optimizer, feed_dict={self._x: batch_x, self._y: batch_y, self._keep_prob: 0.5})
 
     def predict(self, x):
         """Returns the output of the model from the given input array.

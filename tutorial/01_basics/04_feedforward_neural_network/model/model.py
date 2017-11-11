@@ -5,8 +5,7 @@ import tempfile
 
 class FNN(object):
     """Feedforward Neural Network
-    This class uses TensorFlow to create a FNN model that is used for regression, logistic regression,
-    and classification problems.
+    This class is used to create a Feedforward Neural Network (FNN) model.
     """
 
     def __init__(self, input_size, output_size, hidden_sizes,
@@ -17,7 +16,7 @@ class FNN(object):
         Args:
             input_size (int): Size of input for input arrays
             output_size (int): Size of output for model output
-            hidden_sizes (list<int>): A list of integers, each representing the size of a hidden layer.
+            hidden_sizes (list of int): A list of integers, each representing the size of a hidden layer.
             act_func (str): A given activation function name used as part of the model.
                 Current options are "relu", "elu", "sigmoid", and "tanh".
                 (Optional: "relu")
@@ -109,7 +108,7 @@ class FNN(object):
         """Used to generate variables used for weights.
 
         Args:
-            shape (list<int>): Used to generate a normal tensor.
+            shape (list of int): Used to generate a normal tensor.
             name (str): Name used in tf.Variable and tf.summary for TensorBoard
 
         Returns:
@@ -123,7 +122,7 @@ class FNN(object):
         """Used to generate variables used for biases.
 
         Args:
-            shape (list<int>): Used to generate a constant tensor.
+            shape (list of int): Used to generate a constant tensor.
             constant (float): Used to define all values in the returned variable.
             name (string): Name used in tf.Variable and tf.summary for TensorBoard
 
@@ -150,8 +149,10 @@ class FNN(object):
             learning_rate(float): Learning rate used by the AdamOptimizer. (Optional: 1e-3)
             batch_size(int): Size of each batch. (Optional: 10)
             n_epochs(int): Number of iterations. (Optional: 20000)
-            epoch_print(int): Prints out training information every nth batch,
-                or never if set to None. (Optional: None)
+            epoch_print (int or None): If None, will not print out any information during training. If int, will
+                print out information and plot figures in ratio with the number of data points.
+                (i.e. 2 -> prints information in the beginning and middle of each epoch)
+                (Optional: None)
             reuse(bool): If True, will reset the session from last. Otherwise, will only set if not defined.
                 (Optional: True)
 
@@ -227,6 +228,13 @@ class FNN(object):
         # Begin Training
         # ================================================
         total_batches = int(np.ceil(x.shape[0] * 1. / batch_size))
+        if epoch_print:
+            if epoch_print and epoch_print <= 0:
+                epoch_print = None
+            elif int(np.floor(total_batches / epoch_print)) >= 1:
+                epoch_print = int(np.floor(total_batches / epoch_print))
+            else:
+                epoch_print = 1
 
         for epoch in range(n_epochs):
             # --------------------------------
@@ -243,7 +251,7 @@ class FNN(object):
             batch_iter = 0  # Current iteration of batches
 
             # Epoch Information
-            if epoch_print and epoch % epoch_print == 0:
+            if epoch_print and (epoch % epoch_print) == 0:
                 train_accuracy = self._sess.run(accuracy, feed_dict={self._x: x,
                                                                      self._y: y})
                 if self._tensor_board:

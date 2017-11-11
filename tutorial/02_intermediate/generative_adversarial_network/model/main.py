@@ -8,4 +8,4 @@ X, _ = mnist.train.next_batch(110000)
 print X.shape
 
 gan = GAN(64, 784, [128])
-gan.train(X, batch_print=1000, batch_size=22, n_epochs=34)
+gan.train(X, batch_print=10, batch_size=22, n_epochs=34)
